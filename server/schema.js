@@ -9,6 +9,8 @@ const {
   GraphQLSchema,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
+  GraphQLList,
+  GraphQLNonNull,
   buildSchema
 } = graphql;
 const { Kind } = require('graphql/language');
@@ -44,7 +46,12 @@ const CharacterInterface = new GraphQLInterfaceType({
   name: 'Character',
   fields: () => ({
     id: { type: GraphQLID },
-    name: { type: GraphQLString }
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    appearsIn: { type: new GraphQLList(EpisodeEnum) },
+    friends: {
+      type: new GraphQLList(CharacterInterface),
+      args: { appearsIn: { type: EpisodeEnum } }
+    }
   }),
   resolveType: (value) => {
     switch (value.type) {
@@ -61,9 +68,15 @@ const HumanType = new GraphQLObjectType({
   interfaces: [ CharacterInterface ],
   fields: () => ({
     id: { type: GraphQLID },
-    name: { type: GraphQLString },
+    name: { type: new GraphQLNonNull(GraphQLString) },
     homePlanet: { type: GraphQLString },
-    birthYear: { type: DateType }
+    birthYear: { type: DateType },
+    appearsIn: { type: new GraphQLList(EpisodeEnum) },
+    friends: {
+      type: new GraphQLList(CharacterInterface),
+      args: { appearsIn: { type: EpisodeEnum } },
+      resolve: (human, { appearsIn }) => Data.getFriends(human, appearsIn)
+    }
   })
 });
 
@@ -73,8 +86,14 @@ const DroidType = new GraphQLObjectType({
   interfaces: [ CharacterInterface ],
   fields: () => ({
     id: { type: GraphQLID },
-    name: { type: GraphQLString },
-    manufacturer: { type: GraphQLString }
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    manufacturer: { type: GraphQLString },
+    appearsIn: { type: new GraphQLList(EpisodeEnum) },
+    friends: {
+      type: new GraphQLList(CharacterInterface),
+      args: { appearsIn: { type: EpisodeEnum } },
+      resolve: (droid, { appearsIn }) => Data.getFriends(droid, appearsIn)
+    }
   })
 });
 
@@ -144,7 +163,10 @@ const query = new GraphQLObjectType({
     character: {
       type: CharacterInterface,
       args: {
-        id: { type: GraphQLID, description: 'ID of the character' }
+        id: {
+          type: new GraphQLNonNull(GraphQLID),
+          description: 'ID of the character'
+        }
       },
       resolve: (root, { id }) => Data.getCharacter(id)
     }

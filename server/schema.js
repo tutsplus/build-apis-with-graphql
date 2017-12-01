@@ -8,6 +8,7 @@ const {
   GraphQLEnumType,
   GraphQLSchema,
   GraphQLInputObjectType,
+  GraphQLInterfaceType,
   buildSchema
 } = graphql;
 const { Kind } = require('graphql/language');
@@ -39,9 +40,25 @@ function serializeDate(value) {
   return `${Math.abs(value)} ${Math.sign(value) == 1 ? "ABY" : "BBY"}`;
 }
 
+const CharacterInterface = new GraphQLInterfaceType({
+  name: 'Character',
+  fields: () => ({
+    id: { type: GraphQLID },
+    name: { type: GraphQLString }
+  }),
+  resolveType: (value) => {
+    switch (value.type) {
+      case 'Human': return HumanType;
+      case 'Droid': return DroidType;
+      default: return null;
+    }
+  }
+})
+
 const HumanType = new GraphQLObjectType({
   name: 'Human',
   description: 'A human character in the Star Wars universe.',
+  interfaces: [ CharacterInterface ],
   fields: () => ({
     id: { type: GraphQLID },
     name: { type: GraphQLString },
@@ -53,6 +70,7 @@ const HumanType = new GraphQLObjectType({
 const DroidType = new GraphQLObjectType({
   name: 'Droid',
   description: 'A droid character in the Star Wars universe.',
+  interfaces: [ CharacterInterface ],
   fields: () => ({
     id: { type: GraphQLID },
     name: { type: GraphQLString },
@@ -60,17 +78,17 @@ const DroidType = new GraphQLObjectType({
   })
 });
 
-const CharacterType = new GraphQLUnionType({
-  name: 'Character',
-  types: [ HumanType, DroidType ],
-  resolveType: (value) => {
-    switch (value.type) {
-      case 'Human': return HumanType;
-      case 'Droid': return DroidType;
-      default: return null;
-    }
-  }
-});
+// const CharacterType = new GraphQLUnionType({
+//   name: 'Character',
+//   types: [ HumanType, DroidType ],
+//   resolveType: (value) => {
+//     switch (value.type) {
+//       case 'Human': return HumanType;
+//       case 'Droid': return DroidType;
+//       default: return null;
+//     }
+//   }
+// });
 
 const EpisodeEnum = new GraphQLEnumType({
   name: 'Episode',
@@ -124,7 +142,7 @@ const query = new GraphQLObjectType({
   name: 'Query',
   fields: () => ({
     character: {
-      type: CharacterType,
+      type: CharacterInterface,
       args: {
         id: { type: GraphQLID, description: 'ID of the character' }
       },
@@ -149,6 +167,7 @@ const mutation = new GraphQLObjectType({
 
 module.exports = new GraphQLSchema({
   query,
+  types: [ HumanType, DroidType ],
   mutation
 });
 

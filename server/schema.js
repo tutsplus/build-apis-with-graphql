@@ -5,9 +5,14 @@ const {
   GraphQLString,
   GraphQLScalarType,
   GraphQLUnionType,
-  GraphQLEnumType
+  GraphQLEnumType,
+  GraphQLSchema,
+  GraphQLInputObjectType,
+  buildSchema
 } = graphql;
 const { Kind } = require('graphql/language');
+
+const Data = require('./data');
 
 const DateType = new GraphQLScalarType({
   name: 'Date',
@@ -105,3 +110,60 @@ const EpisodeEnum = new GraphQLEnumType({
     }
   }
 });
+
+const HumanInputType = new GraphQLInputObjectType({
+  name: 'HumanInput',
+  fields: () => ({
+    id: { type: GraphQLID },
+    name: { type: GraphQLString },
+    birthYear: { type: DateType }
+  })
+});
+
+const query = new GraphQLObjectType({
+  name: 'Query',
+  fields: () => ({
+    character: {
+      type: CharacterType,
+      args: {
+        id: { type: GraphQLID, description: 'ID of the character' }
+      },
+      resolve: (root, { id }) => Data.getCharacter(id)
+    }
+  })
+});
+
+const mutation = new GraphQLObjectType({
+  name: 'Mutation',
+  fields: () => ({
+    createHuman: {
+      description: 'Create a new human character',
+      type: HumanType,
+      args: {
+        human: { type: HumanInputType }
+      },
+      resolve: (root, { human }) => Data.createHuman(human)
+    }
+  })
+});
+
+module.exports = new GraphQLSchema({
+  query,
+  mutation
+});
+
+// module.exports = { schema: buildSchema(`
+//   type Query {
+//     human(id: ID): Human
+//   }
+//
+//   type Human {
+//     id: ID
+//     name: String
+//     homePlanet: String
+//   }
+// `),
+//   root: {
+//     human: ({ id }) => Data.getCharacter(id)
+//   }
+// };
